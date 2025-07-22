@@ -1,20 +1,26 @@
-import { useEffect } from 'react'
-import { useSubmitQuestionAttemptMutation } from '@core/services'
-import { useAppDispatch } from '@app/hooks'
-import { updateAttemptsData } from '@features/Assessment/store/assessment.slice'
+import { useCallback } from 'react';
+import { useAppDispatch } from '@app/hooks';
+import {SubmitQuestionAttemptParams, useSubmitQuestionAttemptMutation} from '@core/services';
+import {setSubmittingState, updateAttemptResult} from "@features/Assessment/store/assessment.slice";
 
-const useSubmitAttempt = () => {
-    const dispatch = useAppDispatch()
+export const useSubmitAttempt = () => {
+    const dispatch = useAppDispatch();
+    const [submitMutation, { isLoading }] = useSubmitQuestionAttemptMutation();
 
-    const [submitQuestionAttempt, { isLoading, data }] =
-        useSubmitQuestionAttemptMutation()
-    useEffect(() => {
-        if (data) {
-            dispatch(updateAttemptsData(data))
+    const submitAttempt = useCallback(async (params: SubmitQuestionAttemptParams) => {
+        try {
+            dispatch(setSubmittingState(true));
+            const result = await submitMutation(params).unwrap();
+            dispatch(updateAttemptResult(result));
+            return { success: true, data: result };
+        } catch (error) {
+            dispatch(setSubmittingState(false));
+            return { success: false, error };
         }
-    }, [data, dispatch])
+    }, [dispatch, submitMutation]);
 
-    return { submitQuestionAttempt, isLoading }
-}
-
-export default useSubmitAttempt
+    return {
+        submitAttempt,
+        isSubmitting: isLoading,
+    };
+};

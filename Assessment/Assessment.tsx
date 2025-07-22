@@ -1,89 +1,99 @@
-import React from 'react'
-import AssessmentHeader from './components/AssessmentHeader/AssessmentHeader'
-import ProgressBar from './components/ProgressBar/ProgressBar'
-import ResultsOverview from './components/ResultsOverview/ResultsOverview'
-import QuestionCard from './components/QuestionCard/QuestionCard'
-import QuestionPills from './components/QuestionPills/QuestionPills'
-import NavigationControls from './components/NavigationControls/NavigationControls'
-import Timer from './components/Timer/Timer'
-import { useParams } from 'react-router-dom'
-import { RingLoader } from 'react-spinners'
-import ErrorBlock from './components/ErrorBlock/ErrorBlock'
-import useAssessmentQuestions from './hooks/useAssessment'
-import useQuestionAttempts from './hooks/useQuestionAttempts'
+import React from 'react';
+import { useParams } from 'react-router-dom';
+import { useAppSelector } from '@app/hooks';
+import {ErrorMessage} from "@features/Assessment/components/ErrorMessage/ErrorMessage";
+import {useAssessment} from "@features/Assessment/hooks/useAssessment";
+import {useQuestionAttempts} from "@features/Assessment/hooks/useQuestionAttempts";
+import {LoadingSpinner} from "@features/Assessment/components/LoadingSpinner/LoadingSpinner";
+import {AssessmentHeader} from "@features/Assessment/components/AssessmentHeader/AssessmentHeader";
+import {ResultsOverview} from "@features/Assessment/components/ResultsOverview/ResultsOverview";
+
+import {QuestionPills} from "@features/Assessment/components/QuestionPills/QuestionPills";
+import {ProgressSection} from "@features/Assessment/components/ProgressSection/ProgressSection";
+import {QuestionCard} from "@features/Assessment/components/QuestionCard/QuestionCard";
+import {NavigationControls} from "@features/Assessment/components/NavigationControls/NavigationControls";
+import {selectShowResults} from "@features/Assessment/store/assessment.selector";
 
 const Assessment: React.FC = () => {
-    const { objectiveId } = useParams()
+    const { objectiveId } = useParams<{ objectiveId: string }>();
+    const showResults = useAppSelector(selectShowResults);
 
+    // Validate required parameter
     if (!objectiveId) {
-        return null
-    }
-
-    const { questionsLoading, questionsError } = useAssessmentQuestions({
-        objectiveId,
-    })
-
-    const { attemptsLoading, attemptsError } = useQuestionAttempts({
-        objectiveId,
-    })
-
-    const isFetching = questionsLoading || attemptsLoading
-
-    if (isFetching) {
         return (
-            <div className="flex flex-col items-center justify-center w-full mt-4 max-w-4xl mx-auto p-6 border border-gray rounded-lg shadow-lg bg-gray-50 font-opensans h-96">
-                <RingLoader
-                    color={'#0f95f1'}
-                    loading={true}
-                    size={64} // matches your h-16 w-16
-                    aria-label="Loading Assessment"
-                />
-                <h2 className="text-xl font-semibold text-gray-700 mb-2 font-mier">
-                    Loading Assessment
-                </h2>
-                <p className="text-gray-500 font-opensans">
-                    Please wait while we prepare your questions...
-                </p>
-            </div>
-        )
-    }
-
-    if (questionsError) {
-        return (
-            <ErrorBlock
-                title="Error Loading Assessment"
-                description="We encountered a problem while loading your questions:"
+            <ErrorMessage
+                title="Invalid Assessment"
+                message="No objective ID provided. Please check your URL and try again."
+                showReturnButton
             />
-        )
+        );
     }
-    if (attemptsError) {
+
+    const assessment = useAssessment(objectiveId);
+    const attempts = useQuestionAttempts(objectiveId);
+
+    // Loading state
+    if (assessment.isLoading || attempts.isLoading) {
         return (
-            <ErrorBlock
-                title="Error Loading Previous Attempts"
-                description="We encountered a problem while loading your previous quiz attempts:"
+            <LoadingSpinner
+                title="Loading Assessment"
+                message="Please wait while we prepare your questions..."
             />
-        )
+        );
+    }
+
+    // Error states
+    if (assessment.error) {
+        return (
+            <ErrorMessage
+                title="Failed to Load Assessment"
+                message="We couldn't load your assessment questions."
+                error={assessment.error}
+                onRetry={assessment.retry}
+            />
+        );
+    }
+
+    if (attempts.error) {
+        return (
+            <ErrorMessage
+                title="Failed to Load Previous Attempts"
+                message="We couldn't load your previous attempts."
+                error={attempts.error}
+                onRetry={attempts.retry}
+            />
+        );
+    }
+
+    // No data state
+    if (!assessment.hasData) {
+        return (
+            <ErrorMessage
+                title="No Questions Available"
+                message="This assessment doesn't have any questions available."
+                showReturnButton
+            />
+        );
     }
 
     return (
-        <div className="flex flex-col items-center w-full mt-4 max-w-4xl mx-auto p-6 border border-gray rounded-lg shadow-lg bg-gray-50 font-opensans">
-            <AssessmentHeader />
+<>
+    <div className="flex flex-col items-center w-full mt-4 max-w-4xl mx-auto p-6 border border-gray-200 rounded-lg shadow-lg bg-gray-50 font-opensans relative">
+        <AssessmentHeader />
+        <ProgressSection />
 
-            <div className="w-full flex justify-between mb-4 gap-4 flex-wrap">
-                <ProgressBar>
-                    <Timer />
-                </ProgressBar>
-            </div>
+        {showResults && <ResultsOverview />}
 
-            <ResultsOverview />
-
+        <div className={`w-full ${showResults ? 'opacity-20 pointer-events-none' : ''}`}>
             <QuestionCard />
-
             <NavigationControls objectiveId={objectiveId} />
-
             <QuestionPills />
         </div>
-    )
-}
+    </div>
 
-export default Assessment
+</>
+
+    );
+};
+
+export default Assessment;

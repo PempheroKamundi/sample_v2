@@ -1,30 +1,34 @@
-import { useEffect } from 'react'
-import { useFetchQuestionAttemptsQuery } from '@core/services'
-import { updateAttemptsData } from '@features/Assessment/store/assessment.slice'
-import { useAppDispatch } from '@app/hooks'
+import { useCallback, useEffect } from 'react';
+import { useAppDispatch } from '@app/hooks';
+import { useFetchQuestionAttemptsQuery } from '@core/services';
+import { updateAttemptResult } from '../store/assessment.slice';
 
-interface AttemptsProps {
-    objectiveId: string
-}
-
-const useQuestionAttempts = ({ objectiveId }: AttemptsProps) => {
-    const dispatch = useAppDispatch()
+export const useQuestionAttempts = (objectiveId: string) => {
+    const dispatch = useAppDispatch();
 
     const {
         data,
-        error: attemptsError,
-        isLoading: attemptsLoading,
-    } = useFetchQuestionAttemptsQuery({ objectiveId }, { skip: !objectiveId })
+        error,
+        isLoading,
+        refetch,
+    } = useFetchQuestionAttemptsQuery(
+        { objectiveId },
+        { skip: !objectiveId }
+    );
+
     useEffect(() => {
         if (data) {
-            dispatch(updateAttemptsData(data))
+            dispatch(updateAttemptResult(data));
         }
-    }, [data, dispatch])
+    }, [data, dispatch]);
+
+    const retry = useCallback(() => {
+        refetch();
+    }, [refetch]);
 
     return {
-        attemptsError,
-        attemptsLoading,
-    }
-}
-
-export default useQuestionAttempts
+        isLoading,
+        error,
+        retry,
+    };
+};

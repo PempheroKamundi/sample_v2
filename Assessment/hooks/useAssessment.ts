@@ -1,33 +1,35 @@
-import { useFetchAssessmentQuestionsQuery } from '@core/services'
-import { useEffect } from 'react'
-import { useAppDispatch } from '@app/hooks'
-import { setQuestions } from '@features/Assessment/store/assessment.slice'
-interface AssessmentProps {
-    objectiveId: string
-}
+import { useCallback, useEffect } from 'react';
+import { useAppDispatch } from '@app/hooks';
+import { useFetchAssessmentQuestionsQuery } from '@core/services';
+import { initializeAssessment } from '../store/assessment.slice';
 
-const useAssessmentQuestions = ({ objectiveId }: AssessmentProps) => {
-    const dispatch = useAppDispatch()
+export const useAssessment = (objectiveId: string) => {
+    const dispatch = useAppDispatch();
 
     const {
         data,
-        error: questionsError,
-        isLoading: questionsLoading,
+        error,
+        isLoading,
+        refetch,
     } = useFetchAssessmentQuestionsQuery(
         { objectiveId },
         { skip: !objectiveId }
-    )
+    );
 
     useEffect(() => {
         if (data?.questions) {
-            dispatch(setQuestions(data.questions))
+            dispatch(initializeAssessment(data.questions));
         }
-    }, [data, dispatch])
+    }, [data, dispatch]);
+
+    const retry = useCallback(() => {
+        refetch();
+    }, [refetch]);
 
     return {
-        questionsError,
-        questionsLoading,
-    }
-}
-
-export default useAssessmentQuestions
+        isLoading,
+        error,
+        retry,
+        hasData: !!data?.questions,
+    };
+};

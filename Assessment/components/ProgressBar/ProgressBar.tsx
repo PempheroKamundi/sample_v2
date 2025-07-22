@@ -1,72 +1,45 @@
-import React, { ReactNode, useMemo } from 'react'
-import { useAppDispatch, useAppSelector } from '@app/hooks'
-import {
-    selectProgressPercent,
-    selectScoreInfo,
-} from '@features/Assessment/store/assessment.selector'
-import { toggleResults } from '@features/Assessment/store/assessment.slice'
+import React from 'react';
+import { useAppDispatch, useAppSelector } from '@app/hooks';
+import { toggleResultsView } from '../../store/assessment.slice';
+import {selectAssessmentProgress, selectCurrentQuestionIndex} from "@features/Assessment/store/assessment.selector";
 
-interface ProgressBarProps {
-    children: ReactNode
-}
-
-const ProgressBar: React.FC<ProgressBarProps> = ({ children }) => {
-    const dispatch = useAppDispatch()
-
-    const { answeredCount, passedCount, totalQuestions } =
-        useAppSelector(selectScoreInfo)
-
-    const progressPercent = useAppSelector(selectProgressPercent)
-
-    const currentQuestionNumber = useMemo(() => {
-        return Math.ceil((progressPercent / 100) * totalQuestions)
-    }, [progressPercent, totalQuestions])
+export const ProgressBar: React.FC = () => {
+    const dispatch = useAppDispatch();
+    const currentIndex = useAppSelector(selectCurrentQuestionIndex);
+    const progress = useAppSelector(selectAssessmentProgress);
 
     const handleToggleResults = () => {
-        dispatch(toggleResults())
-    }
+        dispatch(toggleResultsView());
+    };
+
+    const currentQuestionNumber = Math.max(1, currentIndex + 1);
+    const progressPercentage = progress.progressPercentage;
 
     return (
-        <div className="w-full flex justify-between mb-4 gap-4 flex-wrap">
-            <div className="flex-grow bg-white border border-gray-200 rounded-md p-2 relative">
-                <div
-                    className="bg-[#1095F1] opacity-40 absolute left-0 top-0 h-full rounded-md"
-                    style={{ width: `${progressPercent}%`, margin: '2px' }}
-                ></div>
-                <div className="text-center relative z-10 font-opensans text-gray-700">
-                    Question {currentQuestionNumber} of {totalQuestions}
-                </div>
-            </div>
+        <div className="flex-grow bg-white border border-gray-200 rounded-md p-2 relative mr-4">
+            <div
+                className="bg-blue-600 opacity-40 absolute left-0 top-0 h-full rounded-md transition-all duration-300"
+                style={{ width: `${progressPercentage}%`, margin: '2px' }}
+            />
 
-            <button
-                onClick={handleToggleResults}
-                className="bg-amber-50 hover:bg-amber-100 border-2 border-[#e3a008] rounded-md px-4 py-2 flex items-center gap-2 shadow-sm transition-colors duration-200"
-                title="View your quiz progress and results"
-            >
-                <div className="flex items-end h-5 gap-1">
-                    <div className="w-1.5 h-3 bg-[#e3a008] rounded-sm"></div>
-                    <div className="w-1.5 h-2 bg-[#e3a008] rounded-sm"></div>
-                    <div className="w-1.5 h-4 bg-[#e3a008] rounded-sm"></div>
-                </div>
-                <span className="font-bold text-gray-800 font-opensans">
-                    View Progress ({passedCount}/{totalQuestions})
-                </span>
-                <svg
-                    className="w-4 h-4 text-[#e3a008]"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
+            <div className="text-center relative z-10 font-opensans text-gray-700 flex items-center justify-between px-2">
+                <span>Question {currentQuestionNumber} of {progress.totalQuestions}</span>
+
+                <button
+                    onClick={handleToggleResults}
+                    className="bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded px-3 py-1 flex items-center gap-2 transition-colors text-sm"
+                    title="View your quiz progress and results"
                 >
-                    <path
-                        fillRule="evenodd"
-                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                        clipRule="evenodd"
-                    />
-                </svg>
-            </button>
-
-            {children}
+                    <div className="flex items-end h-4 gap-1">
+                        <div className="w-1 h-2 bg-amber-600 rounded-sm" />
+                        <div className="w-1 h-1.5 bg-amber-600 rounded-sm" />
+                        <div className="w-1 h-3 bg-amber-600 rounded-sm" />
+                    </div>
+                    <span className="font-medium text-amber-800">
+            Progress ({progress.correctAnswers}/{progress.totalQuestions})
+          </span>
+                </button>
+            </div>
         </div>
-    )
-}
-
-export default ProgressBar
+    );
+};
